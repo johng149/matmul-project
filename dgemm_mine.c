@@ -161,7 +161,7 @@ void square_dgemm_helper(
     }
 }
 
-void square_dgemm(const int M, const double *A, const double *B, double *C)
+void square_dgemm(const int M, const double *restrict A, const double *restrict B, double *C)
 {
     const int panel_block_size = 64;
     const int subpartition_size = 8;
