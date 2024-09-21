@@ -163,7 +163,7 @@ void square_dgemm_helper(
 
 void square_dgemm(const int M, const double *A, const double *B, double *C)
 {
-    const int panel_block_size = 8;
+    const int panel_block_size = 64;
     const int subpartition_size = 8;
     square_dgemm_helper(M, B, A, C, panel_block_size, subpartition_size);
 }
