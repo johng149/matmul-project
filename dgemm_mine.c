@@ -54,7 +54,7 @@ void vector_outer_product_4x4(const double *restrict A_packed, const double *res
 
     The input matrix has `r` rows and `c` columns
 */
-double *pack_matrix_t(
+void pack_matrix_t(
     const double *restrict AT,
     const int r,
     const int c,
@@ -63,25 +63,34 @@ double *pack_matrix_t(
     const int rows_to_pack,
     const int cols_to_pack,
     const int out_rows,
-    const int out_cols)
+    const int out_cols,
+    double *packed_matrix // given should have out_rows * out_cols elements
+)
 {
-    double *packed_matrix = (double *)aligned_alloc(32, out_rows * out_cols * sizeof(double));
-    memset(packed_matrix, 0, out_rows * out_cols * sizeof(double));
+    // double *packed_matrix = (double *)aligned_alloc(32, out_rows * out_cols * sizeof(double));
+    // memset(packed_matrix, 0, out_rows * out_cols * sizeof(double));
 
-    for (int i = 0; i < cols_to_pack; ++i)
+    for (int i = 0; i < out_cols; ++i)
     {
-        for (int j = 0; j < rows_to_pack; ++j)
+        for (int j = 0; j < out_rows; ++j)
         {
             const int at_idx = (start_col + i) * r + start_row + j;
             const int packed_idx = i * out_rows + j;
-            packed_matrix[packed_idx] = AT[at_idx];
+            if (j >= rows_to_pack || i >= cols_to_pack)
+            {
+                packed_matrix[packed_idx] = 0;
+            }
+            else
+            {
+                packed_matrix[packed_idx] = AT[at_idx];
+            }
         }
     }
 
-    return packed_matrix;
+    // return packed_matrix;
 }
 
-double *pack_matrix(
+void pack_matrix(
     const double *restrict A,
     const int r,
     const int c,
@@ -90,22 +99,31 @@ double *pack_matrix(
     const int rows_to_pack,
     const int cols_to_pack,
     const int out_rows,
-    const int out_cols)
+    const int out_cols,
+    double *packed_matrix // given should have out_rows * out_cols elements
+)
 {
-    double *packed_matrix = (double *)aligned_alloc(32, out_rows * out_cols * sizeof(double));
-    memset(packed_matrix, 0, out_rows * out_cols * sizeof(double));
+    // double *packed_matrix = (double *)aligned_alloc(32, out_rows * out_cols * sizeof(double));
+    // memset(packed_matrix, 0, out_rows * out_cols * sizeof(double));
 
-    for (int i = 0; i < rows_to_pack; ++i)
+    for (int i = 0; i < out_rows; ++i)
     {
-        for (int j = 0; j < cols_to_pack; ++j)
+        for (int j = 0; j < out_cols; ++j)
         {
             const int a_idx = (start_row + i) * c + start_col + j;
             const int packed_idx = i * out_cols + j;
-            packed_matrix[packed_idx] = A[a_idx];
+            if (j >= cols_to_pack || i >= rows_to_pack)
+            {
+                packed_matrix[packed_idx] = 0;
+            }
+            else
+            {
+                packed_matrix[packed_idx] = A[a_idx];
+            }
         }
     }
 
-    return packed_matrix;
+    // return packed_matrix;
 }
 
 void write_out(
@@ -171,35 +189,20 @@ void panel_panel_dgemm_a_t(
     const int start_col_b,
     const int write_row,
     const int write_col,
-    const double *AT,
-    const double *B,
-    double *C)
+    const double *restrict AT,
+    const double *restrict B,
+    double *C,
+    const double *restrict A_packed,
+    const double *restrict B_packed)
 {
-    // for (int i = 0; i < panel_a_cols; ++i)
-    // {
-    //     int a_c = start_col_a + i;
-    //     int b_r = start_row_b + i;
-    //     for (int k = 0; k < panel_a_rows; ++k)
-    //     {
-    //         int a_r = start_row_a + k;
-    //         for (int j = 0; j < panel_b_cols; ++j)
-    //         {
-    //             int b_c = start_col_b + j;
-    //             int a_flat = a_c * M + a_r;
-    //             int b_flat = b_r * M + b_c;
-    //             int out_flat = (write_row + k) * M + j + write_col;
-    //             C[out_flat] += AT[a_flat] * B[b_flat];
-    //         }
-    //     }
-    // }
     __m256d result[4] = {
         _mm256_setzero_pd(),
         _mm256_setzero_pd(),
         _mm256_setzero_pd(),
         _mm256_setzero_pd()};
 
-    const double *A_packed = pack_matrix_t(AT, M, M, start_row_a, start_col_a, panel_a_rows, panel_a_cols, PANEL_BLOCK_SIZE, SUBPARTITION_SIZE);
-    const double *B_packed = pack_matrix(B, M, M, start_row_b, start_col_b, panel_b_rows, panel_b_cols, PANEL_BLOCK_SIZE, SUBPARTITION_SIZE);
+    pack_matrix_t(AT, M, M, start_row_a, start_col_a, panel_a_rows, panel_a_cols, PANEL_BLOCK_SIZE, SUBPARTITION_SIZE, A_packed);
+    pack_matrix(B, M, M, start_row_b, start_col_b, panel_b_rows, panel_b_cols, PANEL_BLOCK_SIZE, SUBPARTITION_SIZE, B_packed);
 
     vector_outer_product_4x4(A_packed, B_packed, result);
 
@@ -207,9 +210,6 @@ void panel_panel_dgemm_a_t(
     const int out_cols = panel_b_cols;
 
     write_out(result, C, M, M, write_row, write_col, out_rows, out_cols);
-
-    free((void *)A_packed);
-    free((void *)B_packed);
 }
 
 /*
@@ -229,10 +229,12 @@ void panel_panel_dgemm_recurse_a_t(
     const int start_col_b,
     const int write_row,
     const int write_col,
-    const double *AT,
-    const double *B,
+    const double *restrict AT,
+    const double *restrict B,
     double *C,
-    int block_size)
+    int block_size,
+    const double *restrict a_packed,
+    const double *restrict b_packed)
 {
     const int loop_cap = (block_size < M) * ((int)ceil((double)M / block_size) - 1);
     for (int i = 0; i <= loop_cap; ++i)
@@ -255,14 +257,14 @@ void panel_panel_dgemm_recurse_a_t(
             write_col,
             AT,
             B,
-            C);
+            C, a_packed, b_packed);
     }
 }
 
 void square_dgemm_helper(
     const int M,
-    const double *A,
-    const double *B,
+    const double *restrict A,
+    const double *restrict B,
     double *C,
     const int panel_block_size,
     const int subpartition_size)
@@ -273,6 +275,8 @@ void square_dgemm_helper(
     const int panel_b_rows = M;
     const double *AT = transpose(M, A);
     const int loop_cap = (panel_block_size < M) * ((int)ceil((double)M / panel_block_size) - 1);
+    double *b_packed = (double *)aligned_alloc(32, PANEL_BLOCK_SIZE * SUBPARTITION_SIZE * sizeof(double));
+    double *a_packed = (double *)aligned_alloc(32, PANEL_BLOCK_SIZE * SUBPARTITION_SIZE * sizeof(double));
     for (int i = 0; i <= loop_cap; ++i)
     {
         int start_row_a = i * panel_block_size;
@@ -298,9 +302,13 @@ void square_dgemm_helper(
                 AT,
                 B,
                 C,
-                subpartition_size);
+                subpartition_size, a_packed, b_packed);
         }
     }
+
+    free((void *)a_packed);
+    free((void *)b_packed);
+    free(AT);
 }
 
 void square_dgemm(const int M, const double *restrict A, const double *restrict B, double *C)
