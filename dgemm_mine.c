@@ -1,8 +1,132 @@
 #include <math.h>
 #include <stdlib.h>
+#include <immintrin.h>
 #include <stdio.h>
+#include <string.h>
+
+// since our smallest kernel is a 4 by 4 we define the constants accordingly
+#define SUBPARTITION_SIZE 4 // rows
+#define PANEL_BLOCK_SIZE 4  // cols
 
 const char *dgemm_desc = "My awesome dgemm.";
+
+void vector_outer_product(__m256d a0, __m256d b0, __m256d *result)
+{
+
+    // Broadcast each element of a0 into a separate vector
+    __m256d a0_broadcasted0 = _mm256_set1_pd(((double *)&a0)[0]);
+    __m256d a0_broadcasted1 = _mm256_set1_pd(((double *)&a0)[1]);
+    __m256d a0_broadcasted2 = _mm256_set1_pd(((double *)&a0)[2]);
+    __m256d a0_broadcasted3 = _mm256_set1_pd(((double *)&a0)[3]);
+
+    // Multiply the broadcasted vectors with b0
+    result[0] = _mm256_add_pd(result[0], _mm256_mul_pd(a0_broadcasted0, b0));
+    result[1] = _mm256_add_pd(result[1], _mm256_mul_pd(a0_broadcasted1, b0));
+    result[2] = _mm256_add_pd(result[2], _mm256_mul_pd(a0_broadcasted2, b0));
+    result[3] = _mm256_add_pd(result[3], _mm256_mul_pd(a0_broadcasted3, b0));
+}
+
+/*
+    A_packed has 16 elements as does B_packed, they are aligned in memory and already
+    have padding zeros as needed
+*/
+void vector_outer_product_4x4(const double *restrict A_packed, const double *restrict B_packed, __m256d *result)
+{
+    __m256d a0 = _mm256_load_pd(A_packed);
+    __m256d a1 = _mm256_load_pd(A_packed + 4);
+    __m256d a2 = _mm256_load_pd(A_packed + 8);
+    __m256d a3 = _mm256_load_pd(A_packed + 12);
+
+    __m256d b0 = _mm256_load_pd(B_packed);
+    __m256d b1 = _mm256_load_pd(B_packed + 4);
+    __m256d b2 = _mm256_load_pd(B_packed + 8);
+    __m256d b3 = _mm256_load_pd(B_packed + 12);
+
+    vector_outer_product(a0, b0, result);
+    vector_outer_product(a1, b1, result);
+    vector_outer_product(a2, b2, result);
+    vector_outer_product(a3, b3, result);
+}
+
+/*
+    Takes in a transposed matrix, along with where to start packing, and creates an aligned packed matrix.
+    Will pad with zeros as needed
+
+    The input matrix has `r` rows and `c` columns
+*/
+double *pack_matrix_t(
+    const double *restrict AT,
+    const int r,
+    const int c,
+    const int start_row,
+    const int start_col,
+    const int rows_to_pack,
+    const int cols_to_pack,
+    const int out_rows,
+    const int out_cols)
+{
+    double *packed_matrix = (double *)aligned_alloc(32, out_rows * out_cols * sizeof(double));
+    memset(packed_matrix, 0, out_rows * out_cols * sizeof(double));
+
+    for (int i = 0; i < cols_to_pack; ++i)
+    {
+        for (int j = 0; j < rows_to_pack; ++j)
+        {
+            const int at_idx = (start_col + i) * r + start_row + j;
+            const int packed_idx = i * out_rows + j;
+            packed_matrix[packed_idx] = AT[at_idx];
+        }
+    }
+
+    return packed_matrix;
+}
+
+double *pack_matrix(
+    const double *restrict A,
+    const int r,
+    const int c,
+    const int start_row,
+    const int start_col,
+    const int rows_to_pack,
+    const int cols_to_pack,
+    const int out_rows,
+    const int out_cols)
+{
+    double *packed_matrix = (double *)aligned_alloc(32, out_rows * out_cols * sizeof(double));
+    memset(packed_matrix, 0, out_rows * out_cols * sizeof(double));
+
+    for (int i = 0; i < rows_to_pack; ++i)
+    {
+        for (int j = 0; j < cols_to_pack; ++j)
+        {
+            const int a_idx = (start_row + i) * c + start_col + j;
+            const int packed_idx = i * out_cols + j;
+            packed_matrix[packed_idx] = A[a_idx];
+        }
+    }
+
+    return packed_matrix;
+}
+
+void write_out(
+    __m256d *result,
+    double *C,
+    const int r,
+    const int c,
+    const int write_row,
+    const int write_col,
+    const int out_rows,
+    const int out_cols)
+{
+    for (int i = 0; i < out_rows; ++i)
+    {
+        for (int j = 0; j < out_cols; ++j)
+        {
+            const int c_idx = (write_row + i) * c + write_col + j;
+            C[c_idx] = ((double *)&result[i])[j] + C[c_idx];
+        }
+    }
+}
 
 // https://www.geeksforgeeks.org/compute-the-minimum-or-maximum-max-of-two-integers-without-branching/
 int min(int x, int y)
@@ -51,23 +175,41 @@ void panel_panel_dgemm_a_t(
     const double *B,
     double *C)
 {
-    for (int i = 0; i < panel_a_cols; ++i)
-    {
-        int a_c = start_col_a + i;
-        int b_r = start_row_b + i;
-        for (int k = 0; k < panel_a_rows; ++k)
-        {
-            int a_r = start_row_a + k;
-            for (int j = 0; j < panel_b_cols; ++j)
-            {
-                int b_c = start_col_b + j;
-                int a_flat = a_c * M + a_r;
-                int b_flat = b_r * M + b_c;
-                int out_flat = (write_row + k) * M + j + write_col;
-                C[out_flat] += AT[a_flat] * B[b_flat];
-            }
-        }
-    }
+    // for (int i = 0; i < panel_a_cols; ++i)
+    // {
+    //     int a_c = start_col_a + i;
+    //     int b_r = start_row_b + i;
+    //     for (int k = 0; k < panel_a_rows; ++k)
+    //     {
+    //         int a_r = start_row_a + k;
+    //         for (int j = 0; j < panel_b_cols; ++j)
+    //         {
+    //             int b_c = start_col_b + j;
+    //             int a_flat = a_c * M + a_r;
+    //             int b_flat = b_r * M + b_c;
+    //             int out_flat = (write_row + k) * M + j + write_col;
+    //             C[out_flat] += AT[a_flat] * B[b_flat];
+    //         }
+    //     }
+    // }
+    __m256d result[4] = {
+        _mm256_setzero_pd(),
+        _mm256_setzero_pd(),
+        _mm256_setzero_pd(),
+        _mm256_setzero_pd()};
+
+    const double *A_packed = pack_matrix_t(AT, M, M, start_row_a, start_col_a, panel_a_rows, panel_a_cols, PANEL_BLOCK_SIZE, SUBPARTITION_SIZE);
+    const double *B_packed = pack_matrix(B, M, M, start_row_b, start_col_b, panel_b_rows, panel_b_cols, PANEL_BLOCK_SIZE, SUBPARTITION_SIZE);
+
+    vector_outer_product_4x4(A_packed, B_packed, result);
+
+    const int out_rows = panel_a_rows;
+    const int out_cols = panel_b_cols;
+
+    write_out(result, C, M, M, write_row, write_col, out_rows, out_cols);
+
+    free((void *)A_packed);
+    free((void *)B_packed);
 }
 
 /*
@@ -163,7 +305,5 @@ void square_dgemm_helper(
 
 void square_dgemm(const int M, const double *restrict A, const double *restrict B, double *C)
 {
-    const int panel_block_size = 64;
-    const int subpartition_size = 8;
-    square_dgemm_helper(M, B, A, C, panel_block_size, subpartition_size);
+    square_dgemm_helper(M, B, A, C, PANEL_BLOCK_SIZE, SUBPARTITION_SIZE);
 }
