@@ -970,6 +970,22 @@ void farm_4nx4n_4nx4n(
     }
 }
 
+void farm_4nx4n_4nxk(
+    const int N,
+    const int k,
+    double *restrict a,
+    double *restrict b,
+    double *c)
+{
+    const int Ma = 4 * N;
+    const int Mb = Ma;
+    const int Mc = Ma;
+    for (int i = 0; i < N; ++i)
+    {
+        ear_4x4n_4nxk(Ma, Mb, Mc, N, k, &A(i * 4, 0), b, &C(i * 4, 0));
+    }
+}
+
 double *transpose(const int N, const double *X)
 {
     double *X_T = (double *)malloc(N * N * sizeof(double));
@@ -1034,7 +1050,7 @@ void main()
         }
     }
 
-    ear_4x4n_4nxk(Ma, Mb, Mc, N, k, a, b, c);
+    farm_4nx4n_4nxk(N, k, a, b, c);
 
     // print result
     printf("Result:\n");
