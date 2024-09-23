@@ -2,15 +2,17 @@
 #include <stdlib.h>
 
 // A's `i`th row and `j`th column
-#define A(i, j) a[i * M + j]
+#define A(i, j) a[i * Ma + j]
 // A transpose's `i`th row and `j`th column
-#define AT(i, j) a[j * M + i]
+#define AT(i, j) a[j * Ma + i]
 // B's `i`th row and `j`th column
-#define B(i, j) b[i * M + j]
+#define B(i, j) b[i * Mb + j]
 // B transpose's `i`th row and `j`th column
-#define BT(i, j) b[j * M + i]
+#define BT(i, j) b[j * Mb + i]
 // C's `i`th row and `j`th column
-#define C(i, j) c[i * M + j]
+#define C(i, j) c[i * Mc + j]
+
+// start of kernels
 
 /*
     kernel_4x4_4x4 calculates the 4x4 block of C that is the result of multiplying the 4x4 block of A with the 4x4 block of B.
@@ -20,7 +22,7 @@
     B: pointer already moved to first element of the 4x4 block of B
     C: pointer already moved to first element of the 4x4 block of C
 */
-void kernel_4x4_4x4(const int M, double *restrict a, double *restrict b, double *c)
+void kernel_4x4_4x4(const int Ma, const int Mb, const int Mc, double *restrict a, double *restrict b, double *c)
 {
     double c00 = C(0, 0), c01 = C(0, 1), c02 = C(0, 2), c03 = C(0, 3);
     double c10 = C(1, 0), c11 = C(1, 1), c12 = C(1, 2), c13 = C(1, 3);
@@ -71,7 +73,7 @@ void kernel_4x4_4x4(const int M, double *restrict a, double *restrict b, double 
     C(3, 3) = c33;
 }
 
-void kernel_4x4_4x1(const int M, double *restrict a, double *restrict b, double *c)
+void kernel_4x4_4x1(const int Ma, const int Mb, const int Mc, double *restrict a, double *restrict b, double *c)
 {
     double c0 = C(0, 0), c1 = C(1, 0), c2 = C(2, 0), c3 = C(3, 0);
 
@@ -89,7 +91,7 @@ void kernel_4x4_4x1(const int M, double *restrict a, double *restrict b, double 
     C(3, 0) = c3;
 }
 
-void kernel_4x4_4x2(const int M, double *restrict a, double *restrict b, double *c)
+void kernel_4x4_4x2(const int Ma, const int Mb, const int Mc, double *restrict a, double *restrict b, double *c)
 {
     double c0 = C(0, 0), c1 = C(1, 0), c2 = C(2, 0), c3 = C(3, 0);
     double c4 = C(0, 1), c5 = C(1, 1), c6 = C(2, 1), c7 = C(3, 1);
@@ -118,7 +120,7 @@ void kernel_4x4_4x2(const int M, double *restrict a, double *restrict b, double 
     C(3, 1) = c7;
 }
 
-void kernel_4x4_4x3(const int M, double *restrict a, double *restrict b, double *c)
+void kernel_4x4_4x3(const int Ma, const int Mb, const int Mc, double *restrict a, double *restrict b, double *c)
 {
     double c0 = C(0, 0), c1 = C(1, 0), c2 = C(2, 0), c3 = C(3, 0);
     double c4 = C(0, 1), c5 = C(1, 1), c6 = C(2, 1), c7 = C(3, 1);
@@ -158,7 +160,7 @@ void kernel_4x4_4x3(const int M, double *restrict a, double *restrict b, double 
     C(3, 2) = c11;
 }
 
-void kernel_4x1_1x4(const int M, double *restrict a, double *restrict b, double *c)
+void kernel_4x1_1x4(const int Ma, const int Mb, const int Mc, double *restrict a, double *restrict b, double *c)
 {
     double c00 = C(0, 0), c01 = C(0, 1), c02 = C(0, 2), c03 = C(0, 3);
     double c10 = C(1, 0), c11 = C(1, 1), c12 = C(1, 2), c13 = C(1, 3);
@@ -206,7 +208,7 @@ void kernel_4x1_1x4(const int M, double *restrict a, double *restrict b, double 
     C(3, 3) = c33;
 }
 
-void kernel_4x2_2x4(const int M, double *restrict a, double *restrict b, double *c)
+void kernel_4x2_2x4(const int Ma, const int Mb, const int Mc, double *restrict a, double *restrict b, double *c)
 {
     double c00 = C(0, 0), c01 = C(0, 1), c02 = C(0, 2), c03 = C(0, 3);
     double c10 = C(1, 0), c11 = C(1, 1), c12 = C(1, 2), c13 = C(1, 3);
@@ -266,7 +268,7 @@ void kernel_4x2_2x4(const int M, double *restrict a, double *restrict b, double 
     C(3, 3) = c33;
 }
 
-void kernel_4x3_3x4(const int M, double *restrict a, double *restrict b, double *c)
+void kernel_4x3_3x4(const int Ma, const int Mb, const int Mc, double *restrict a, double *restrict b, double *c)
 {
     double c00 = C(0, 0), c01 = C(0, 1), c02 = C(0, 2), c03 = C(0, 3);
     double c10 = C(1, 0), c11 = C(1, 1), c12 = C(1, 2), c13 = C(1, 3);
@@ -326,7 +328,7 @@ void kernel_4x3_3x4(const int M, double *restrict a, double *restrict b, double 
     C(3, 3) = c33;
 }
 
-void kernel_4x1_1x1(const int M, double *restrict a, double *restrict b, double *c)
+void kernel_4x1_1x1(const int Ma, const int Mb, const int Mc, double *restrict a, double *restrict b, double *c)
 {
     double c00 = C(0, 0), c10 = C(1, 0), c20 = C(2, 0), c30 = C(3, 0);
     double b00 = B(0, 0);
@@ -342,7 +344,7 @@ void kernel_4x1_1x1(const int M, double *restrict a, double *restrict b, double 
     C(3, 0) = c30;
 }
 
-void kernel_4x2_2x2(const int M, double *restrict a, double *restrict b, double *c)
+void kernel_4x2_2x2(const int Ma, const int Mb, const int Mc, double *restrict a, double *restrict b, double *c)
 {
     double c00 = C(0, 0), c01 = C(0, 1);
     double c10 = C(1, 0), c11 = C(1, 1);
@@ -386,7 +388,7 @@ void kernel_4x2_2x2(const int M, double *restrict a, double *restrict b, double 
     C(3, 1) = c31;
 }
 
-void kernel_4x3_3x3(const int M, double *restrict a, double *restrict b, double *c)
+void kernel_4x3_3x3(const int Ma, const int Mb, const int Mc, double *restrict a, double *restrict b, double *c)
 {
     double c00 = C(0, 0), c01 = C(0, 1), c02 = C(0, 2);
     double c10 = C(1, 0), c11 = C(1, 1), c12 = C(1, 2);
@@ -438,7 +440,7 @@ void kernel_4x3_3x3(const int M, double *restrict a, double *restrict b, double 
     C(3, 2) = c32;
 }
 
-void kernel_1x4_4x4(const int M, double *restrict a, double *restrict b, double *c)
+void kernel_1x4_4x4(const int Ma, const int Mb, const int Mc, double *restrict a, double *restrict b, double *c)
 {
     double c00 = C(0, 0), c01 = C(0, 1), c02 = C(0, 2), c03 = C(0, 3);
 
@@ -468,7 +470,7 @@ void kernel_1x4_4x4(const int M, double *restrict a, double *restrict b, double 
     C(0, 3) = c03;
 }
 
-void kernel_2x4_4x4(const int M, double *restrict a, double *restrict b, double *c)
+void kernel_2x4_4x4(const int Ma, const int Mb, const int Mc, double *restrict a, double *restrict b, double *c)
 {
     double c00 = C(0, 0), c01 = C(0, 1), c02 = C(0, 2), c03 = C(0, 3);
     double c10 = C(1, 0), c11 = C(1, 1), c12 = C(1, 2), c13 = C(1, 3);
@@ -524,7 +526,7 @@ void kernel_2x4_4x4(const int M, double *restrict a, double *restrict b, double 
     C(1, 3) = c13;
 }
 
-void kernel_3x4_4x4(const int M, double *restrict a, double *restrict b, double *c)
+void kernel_3x4_4x4(const int Ma, const int Mb, const int Mc, double *restrict a, double *restrict b, double *c)
 {
     double c00 = C(0, 0), c01 = C(0, 1), c02 = C(0, 2), c03 = C(0, 3);
     double c10 = C(1, 0), c11 = C(1, 1), c12 = C(1, 2), c13 = C(1, 3);
@@ -606,7 +608,7 @@ void kernel_3x4_4x4(const int M, double *restrict a, double *restrict b, double 
     C(2, 3) = c23;
 }
 
-void kernel_1x4_4x1(const int M, double *restrict a, double *restrict b, double *c)
+void kernel_1x4_4x1(const int Ma, const int Mb, const int Mc, double *restrict a, double *restrict b, double *c)
 {
     double c0 = C(0, 0);
 
@@ -618,7 +620,7 @@ void kernel_1x4_4x1(const int M, double *restrict a, double *restrict b, double 
     C(0, 0) = c0;
 }
 
-void kernel_2x4_4x2(const int M, double *restrict a, double *restrict b, double *c)
+void kernel_2x4_4x2(const int Ma, const int Mb, const int Mc, double *restrict a, double *restrict b, double *c)
 {
     double c00 = C(0, 0), c01 = C(0, 1);
     double c10 = C(1, 0), c11 = C(1, 1);
@@ -650,7 +652,7 @@ void kernel_2x4_4x2(const int M, double *restrict a, double *restrict b, double 
     C(1, 1) = c11;
 }
 
-void kernel_3x4_4x3(const int M, double *restrict a, double *restrict b, double *c)
+void kernel_3x4_4x3(const int Ma, const int Mb, const int Mc, double *restrict a, double *restrict b, double *c)
 {
     double c00 = C(0, 0), c01 = C(0, 1), c02 = C(0, 2);
     double c10 = C(1, 0), c11 = C(1, 1), c12 = C(1, 2);
@@ -714,7 +716,7 @@ void kernel_3x4_4x3(const int M, double *restrict a, double *restrict b, double 
     C(2, 2) = c22;
 }
 
-void kernel_1x1_1x4(const int M, double *restrict a, double *restrict b, double *c)
+void kernel_1x1_1x4(const int Ma, const int Mb, const int Mc, double *restrict a, double *restrict b, double *c)
 {
     double c00 = C(0, 0), c01 = C(0, 1), c02 = C(0, 2), c03 = C(0, 3);
     double a00 = A(0, 0);
@@ -730,7 +732,7 @@ void kernel_1x1_1x4(const int M, double *restrict a, double *restrict b, double 
     C(0, 3) = c03;
 }
 
-void kernel_2x2_2x4(const int M, double *restrict a, double *restrict b, double *c)
+void kernel_2x2_2x4(const int Ma, const int Mb, const int Mc, double *restrict a, double *restrict b, double *c)
 {
     double c00 = C(0, 0), c01 = C(0, 1), c02 = C(0, 2), c03 = C(0, 3);
     double c10 = C(1, 0), c11 = C(1, 1), c12 = C(1, 2), c13 = C(1, 3);
@@ -762,7 +764,7 @@ void kernel_2x2_2x4(const int M, double *restrict a, double *restrict b, double 
     C(1, 3) = c13;
 }
 
-void kernel_3x3_3x4(const int M, double *restrict a, double *restrict b, double *c)
+void kernel_3x3_3x4(const int Ma, const int Mb, const int Mc, double *restrict a, double *restrict b, double *c)
 {
     double c00 = C(0, 0), c01 = C(0, 1), c02 = C(0, 2), c03 = C(0, 3);
     double c10 = C(1, 0), c11 = C(1, 1), c12 = C(1, 2), c13 = C(1, 3);
@@ -808,12 +810,12 @@ void kernel_3x3_3x4(const int M, double *restrict a, double *restrict b, double 
     C(2, 3) = c23;
 }
 
-void kernel_1x1_1x1(const int M, double *restrict a, double *restrict b, double *c)
+void kernel_1x1_1x1(const int Ma, const int Mb, const int Mc, double *restrict a, double *restrict b, double *c)
 {
     C(0, 0) += A(0, 0) * B(0, 0);
 }
 
-void kernel_2x2_2x2(const int M, double *restrict a, double *restrict b, double *c)
+void kernel_2x2_2x2(const int Ma, const int Mb, const int Mc, double *restrict a, double *restrict b, double *c)
 {
     double c00 = C(0, 0), c01 = C(0, 1);
     double c10 = C(1, 0), c11 = C(1, 1);
@@ -837,7 +839,7 @@ void kernel_2x2_2x2(const int M, double *restrict a, double *restrict b, double 
     C(1, 1) = c11;
 }
 
-void kernel_3x3_3x3(const int M, double *restrict a, double *restrict b, double *c)
+void kernel_3x3_3x3(const int Ma, const int Mb, const int Mc, double *restrict a, double *restrict b, double *c)
 {
     double c00 = C(0, 0), c01 = C(0, 1), c02 = C(0, 2);
     double c10 = C(1, 0), c11 = C(1, 1), c12 = C(1, 2);
@@ -875,6 +877,28 @@ void kernel_3x3_3x3(const int M, double *restrict a, double *restrict b, double 
     C(2, 0) = c20;
     C(2, 1) = c21;
     C(2, 2) = c22;
+}
+
+// end of kernels
+
+// start of ears
+/*
+    No need to provide information about matrix shape because we assume that
+    A is 4 by 4
+*/
+void ear_4x4_4x4N(
+    const int N,
+    double *restrict a,
+    double *restrict b,
+    double *c)
+{
+    const int Ma = 4;
+    const int Mb = Ma * N;
+    const int Mc = Mb;
+    for (int i = 0; i < N; ++i)
+    {
+        kernel_4x4_4x4(Ma, Mb, Mc, a, &B(0, i * 4), &C(0, i * 4));
+    }
 }
 
 double *transpose(const int N, const double *X)
@@ -892,40 +916,62 @@ double *transpose(const int N, const double *X)
     return X_T;
 }
 
-void square_dgemm(const int M, double *a, double *b, double *c)
+void square_dgemm(const int Ma, const int Mb, const int Mc, double *a, double *b, double *c)
 {
-    kernel_4x4_4x4(M, a, b, c);
+    kernel_4x4_4x4(Ma, Mb, Mc, a, b, c);
 }
 
 void main()
 {
-    const int M = 5;
+    const int M = 4;
+    const int N = 2;
+    const int Ma = M;
+    const int Mb = M * N;
+    const int Mc = M * N;
     double *a = (double *)malloc(M * M * sizeof(double));
-    double *b = (double *)malloc(M * M * sizeof(double));
-    double *c = (double *)malloc(M * M * sizeof(double));
+    double *b = (double *)malloc(M * M * N * sizeof(double));
+    double *c = (double *)calloc(M * N * M * N, sizeof(double));
+
+    // fill A
     for (int i = 0; i < M * M; ++i)
     {
         a[i] = i;
+    }
+    // fill B
+    for (int i = 0; i < M * M * N; ++i)
+    {
         b[i] = i * -1;
     }
 
-    const int start_row_a = 1;
-    const int start_col_a = 1;
-    const int start_row_b = 1;
-    const int start_col_b = 1;
-    const int write_row = 1;
-    const int write_col = 1;
+    // print out what A and B look like
+    printf("A:\n");
+    for (int i = 0; i < M * M; ++i)
+    {
+        printf("%f ", a[i]);
+        if ((i + 1) % M == 0)
+        {
+            printf("\n");
+        }
+    }
+    // and B
+    printf("B:\n");
+    for (int i = 0; i < M * M * N; ++i)
+    {
+        printf("%f ", b[i]);
+        if ((i + 1) % (M * N) == 0)
+        {
+            printf("\n");
+        }
+    }
 
-    double *a_3x3 = &A(start_row_a, start_col_a);
-    double *b_3x3 = &B(start_row_b, start_col_b);
-    double *c_3x3 = &C(write_row, write_col);
-
-    kernel_3x3_3x3(M, a_3x3, b_3x3, c_3x3);
+    ear_4x4_4x4N(N, a, b, c);
+    // kernel_4x4_4x4(Ma, Mb, Mc, a, b, c);
 
     // print result
-    for (int i = 0; i < M; ++i)
+    printf("Result:\n");
+    for (int i = 0; i < M * N; ++i)
     {
-        for (int j = 0; j < M; ++j)
+        for (int j = 0; j < M * N; ++j)
         {
             printf("%f ", C(i, j));
         }
