@@ -882,7 +882,7 @@ void kernel_3x3_3x3(const int Ma, const int Mb, const int Mc, double *restrict a
 // end of kernels
 
 // start of ears
-void ear_4x4_4x4N(
+void ear_4x4_4x4n(
     const int Ma,
     const int Mb,
     const int Mc,
@@ -894,6 +894,43 @@ void ear_4x4_4x4N(
     for (int i = 0; i < N; ++i)
     {
         kernel_4x4_4x4(Ma, Mb, Mc, a, &B(0, i * 4), &C(0, i * 4));
+    }
+}
+
+void ear_4x4n_4nxk(
+    const int Ma,
+    const int Mb,
+    const int Mc,
+    const int N,
+    const int k,
+    double *restrict a,
+    double *restrict b,
+    double *c)
+{
+    if (k == 1)
+    {
+        for (int i = 0; i < N; ++i)
+        {
+            kernel_4x4_4x1(Ma, Mb, Mc, &A(0, i * 4), &B(i * 4, 0), c);
+        }
+    }
+    else if (k == 2)
+    {
+        for (int i = 0; i < N; ++i)
+        {
+            kernel_4x4_4x2(Ma, Mb, Mc, &A(0, i * 4), &B(i * 4, 0), c);
+        }
+    }
+    else if (k == 3)
+    {
+        for (int i = 0; i < N; ++i)
+        {
+            kernel_4x4_4x3(Ma, Mb, Mc, &A(0, i * 4), &B(i * 4, 0), c);
+        }
+    }
+    else
+    {
+        // should never reach here
     }
 }
 
@@ -913,7 +950,7 @@ void field_4x4n_4nx4n(
 {
     for (int i = 0; i < N; ++i)
     {
-        ear_4x4_4x4N(Ma, Mb, Mc, N, &A(0, i * 4), &B(i * 4, 0), c);
+        ear_4x4_4x4n(Ma, Mb, Mc, N, &A(0, i * 4), &B(i * 4, 0), c);
     }
 }
 
@@ -957,7 +994,8 @@ void main()
 {
     const int M = 4;
     const int N = 2;
-    const int Ma = M;
+    const int k = 3;
+    const int Ma = M * N;
     const int Mb = M * N;
     const int Mc = M * N;
     double *a = (double *)malloc(M * N * M * N * sizeof(double));
@@ -996,7 +1034,7 @@ void main()
         }
     }
 
-    farm_4nx4n_4nx4n(N, a, b, c);
+    ear_4x4n_4nxk(Ma, Mb, Mc, N, k, a, b, c);
 
     // print result
     printf("Result:\n");
