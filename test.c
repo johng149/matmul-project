@@ -882,22 +882,54 @@ void kernel_3x3_3x3(const int Ma, const int Mb, const int Mc, double *restrict a
 // end of kernels
 
 // start of ears
-/*
-    No need to provide information about matrix shape because we assume that
-    A is 4 by 4
-*/
 void ear_4x4_4x4N(
+    const int Ma,
+    const int Mb,
+    const int Mc,
     const int N,
     double *restrict a,
     double *restrict b,
     double *c)
 {
-    const int Ma = 4;
-    const int Mb = Ma * N;
-    const int Mc = Mb;
     for (int i = 0; i < N; ++i)
     {
         kernel_4x4_4x4(Ma, Mb, Mc, a, &B(0, i * 4), &C(0, i * 4));
+    }
+}
+
+// start of fields
+/*
+    No need to provide information about matrix shape because we assume that
+    A can be composed of N blocks in a row, where each block is 4 by 4
+*/
+void field_4x4n_4nx4n(
+    const int Ma,
+    const int Mb,
+    const int Mc,
+    const int N,
+    double *restrict a,
+    double *restrict b,
+    double *c)
+{
+    for (int i = 0; i < N; ++i)
+    {
+        ear_4x4_4x4N(Ma, Mb, Mc, N, &A(0, i * 4), &B(i * 4, 0), c);
+    }
+}
+
+// start of farms
+void farm_4nx4n_4nx4n(
+    const int N,
+    double *restrict a,
+    double *restrict b,
+    double *c)
+{
+    const int Ma = 4 * N;
+    const int Mb = Ma;
+    const int Mc = Ma;
+    for (int i = 0; i < N; ++i)
+    {
+        field_4x4n_4nx4n(Ma, Mb, Mc, N, &A(i * 4, 0), b, &C(i * 4, 0));
     }
 }
 
@@ -928,34 +960,34 @@ void main()
     const int Ma = M;
     const int Mb = M * N;
     const int Mc = M * N;
-    double *a = (double *)malloc(M * M * sizeof(double));
-    double *b = (double *)malloc(M * M * N * sizeof(double));
+    double *a = (double *)malloc(M * N * M * N * sizeof(double));
+    double *b = (double *)malloc(M * N * M * N * sizeof(double));
     double *c = (double *)calloc(M * N * M * N, sizeof(double));
 
     // fill A
-    for (int i = 0; i < M * M; ++i)
+    for (int i = 0; i < M * N * M * N; ++i)
     {
         a[i] = i;
     }
     // fill B
-    for (int i = 0; i < M * M * N; ++i)
+    for (int i = 0; i < M * N * M * N; ++i)
     {
         b[i] = i * -1;
     }
 
     // print out what A and B look like
     printf("A:\n");
-    for (int i = 0; i < M * M; ++i)
+    for (int i = 0; i < M * M * N; ++i)
     {
         printf("%f ", a[i]);
-        if ((i + 1) % M == 0)
+        if ((i + 1) % (M * N) == 0)
         {
             printf("\n");
         }
     }
     // and B
     printf("B:\n");
-    for (int i = 0; i < M * M * N; ++i)
+    for (int i = 0; i < M * N * M * N; ++i)
     {
         printf("%f ", b[i]);
         if ((i + 1) % (M * N) == 0)
@@ -964,8 +996,7 @@ void main()
         }
     }
 
-    ear_4x4_4x4N(N, a, b, c);
-    // kernel_4x4_4x4(Ma, Mb, Mc, a, b, c);
+    farm_4nx4n_4nx4n(N, a, b, c);
 
     // print result
     printf("Result:\n");
