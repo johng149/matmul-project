@@ -971,6 +971,33 @@ void ear_4xk_kx4n(
     }
 }
 
+void ear_4xk_kxk(
+    const int Ma,
+    const int Mb,
+    const int Mc,
+    const int k,
+    double *restrict a,
+    double *restrict b,
+    double *c)
+{
+    if (k == 1)
+    {
+        kernel_4x1_1x1(Ma, Mb, Mc, a, b, c);
+    }
+    else if (k == 2)
+    {
+        kernel_4x2_2x2(Ma, Mb, Mc, a, b, c);
+    }
+    else if (k == 3)
+    {
+        kernel_4x3_3x3(Ma, Mb, Mc, a, b, c);
+    }
+    else
+    {
+        // should never reach here
+    }
+}
+
 // start of fields
 /*
     No need to provide information about matrix shape because we assume that
@@ -1040,6 +1067,22 @@ void farm_4nxk_kx4n(
     }
 }
 
+void farm_4nxk_kxk(
+    const int Ma,
+    const int Mb,
+    const int Mc,
+    const int N,
+    const int k,
+    double *restrict a,
+    double *restrict b,
+    double *c)
+{
+    for (int i = 0; i < N; ++i)
+    {
+        ear_4xk_kxk(Ma, Mb, Mc, k, &A(i * 4, 0), b, &C(i * 4, 0));
+    }
+}
+
 double *transpose(const int N, const double *X)
 {
     double *X_T = (double *)malloc(N * N * sizeof(double));
@@ -1064,7 +1107,7 @@ void main()
 {
     const int M = 4;
     const int N = 2;
-    const int k = 1;
+    const int k = 3;
     const int Ma = M * N;
     const int Mb = M * N;
     const int Mc = M * N;
@@ -1075,12 +1118,12 @@ void main()
     // fill A
     for (int i = 0; i < M * N * M * N; ++i)
     {
-        a[i] = i;
+        a[i] = i + 12;
     }
     // fill B
     for (int i = 0; i < M * N * M * N; ++i)
     {
-        b[i] = i * -1;
+        b[i] = (i + 12) * -1;
     }
 
     // print out what A and B look like
@@ -1104,7 +1147,7 @@ void main()
         }
     }
 
-    farm_4nxk_kx4n(Ma, Mb, Mc, N, k, a, b, c);
+    farm_4nxk_kxk(Ma, Mb, Mc, N, k, a, b, c);
 
     // print result
     printf("Result:\n");
