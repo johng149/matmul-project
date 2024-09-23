@@ -1064,7 +1064,7 @@ void main()
 {
     const int M = 4;
     const int N = 2;
-    const int k = 3;
+    const int k = 1;
     const int Ma = M * N;
     const int Mb = M * N;
     const int Mc = M * N;
