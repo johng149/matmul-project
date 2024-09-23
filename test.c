@@ -606,6 +606,114 @@ void kernel_3x4_4x4(const int M, double *restrict a, double *restrict b, double 
     C(2, 3) = c23;
 }
 
+void kernel_1x4_4x1(const int M, double *restrict a, double *restrict b, double *c)
+{
+    double c0 = C(0, 0);
+
+    for (int i = 0; i < 4; ++i)
+    {
+        c0 += A(0, i) * B(i, 0);
+    }
+
+    C(0, 0) = c0;
+}
+
+void kernel_2x4_4x2(const int M, double *restrict a, double *restrict b, double *c)
+{
+    double c00 = C(0, 0), c01 = C(0, 1);
+    double c10 = C(1, 0), c11 = C(1, 1);
+
+    for (int i = 0; i < 4; ++i)
+    {
+        c00 += A(0, i) * B(i, 0);
+    }
+
+    for (int i = 0; i < 4; ++i)
+    {
+        c01 += A(0, i) * B(i, 1);
+    }
+
+    for (int i = 0; i < 4; ++i)
+    {
+        c10 += A(1, i) * B(i, 0);
+    }
+
+    for (int i = 0; i < 4; ++i)
+    {
+        c11 += A(1, i) * B(i, 1);
+    }
+
+    C(0, 0) = c00;
+    C(0, 1) = c01;
+
+    C(1, 0) = c10;
+    C(1, 1) = c11;
+}
+
+void kernel_3x4_4x3(const int M, double *restrict a, double *restrict b, double *c)
+{
+    double c00 = C(0, 0), c01 = C(0, 1), c02 = C(0, 2);
+    double c10 = C(1, 0), c11 = C(1, 1), c12 = C(1, 2);
+    double c20 = C(2, 0), c21 = C(2, 1), c22 = C(2, 2);
+
+    for (int i = 0; i < 4; ++i)
+    {
+        c00 += A(0, i) * B(i, 0);
+    }
+
+    for (int i = 0; i < 4; ++i)
+    {
+        c01 += A(0, i) * B(i, 1);
+    }
+
+    for (int i = 0; i < 4; ++i)
+    {
+        c02 += A(0, i) * B(i, 2);
+    }
+
+    for (int i = 0; i < 4; ++i)
+    {
+        c10 += A(1, i) * B(i, 0);
+    }
+
+    for (int i = 0; i < 4; ++i)
+    {
+        c11 += A(1, i) * B(i, 1);
+    }
+
+    for (int i = 0; i < 4; ++i)
+    {
+        c12 += A(1, i) * B(i, 2);
+    }
+
+    for (int i = 0; i < 4; ++i)
+    {
+        c20 += A(2, i) * B(i, 0);
+    }
+
+    for (int i = 0; i < 4; ++i)
+    {
+        c21 += A(2, i) * B(i, 1);
+    }
+
+    for (int i = 0; i < 4; ++i)
+    {
+        c22 += A(2, i) * B(i, 2);
+    }
+
+    C(0, 0) = c00;
+    C(0, 1) = c01;
+    C(0, 2) = c02;
+
+    C(1, 0) = c10;
+    C(1, 1) = c11;
+    C(1, 2) = c12;
+
+    C(2, 0) = c20;
+    C(2, 1) = c21;
+    C(2, 2) = c22;
+}
+
 double *transpose(const int N, const double *X)
 {
     double *X_T = (double *)malloc(N * N * sizeof(double));
@@ -646,10 +754,10 @@ void main()
     const int write_col = 1;
 
     double *a_3x4 = &A(start_row_a, start_col_a);
-    double *b_4x4 = &B(start_row_b, start_col_b);
-    double *c_3x4 = &C(write_row, write_col);
+    double *b_4x3 = &B(start_row_b, start_col_b);
+    double *c_3x3 = &C(write_row, write_col);
 
-    kernel_3x4_4x4(M, a_3x4, b_4x4, c_3x4);
+    kernel_3x4_4x3(M, a_3x4, b_4x3, c_3x3);
 
     // print result
     for (int i = 0; i < M; ++i)
