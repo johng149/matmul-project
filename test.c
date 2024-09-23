@@ -993,14 +993,15 @@ void field_4x4n_4nx4n(
 
 // start of farms
 void farm_4nx4n_4nx4n(
+    const int Ma,
+    const int Mb,
+    const int Mc,
     const int N,
     double *restrict a,
     double *restrict b,
     double *c)
 {
-    const int Ma = 4 * N;
-    const int Mb = Ma;
-    const int Mc = Ma;
+
     for (int i = 0; i < N; ++i)
     {
         field_4x4n_4nx4n(Ma, Mb, Mc, N, &A(i * 4, 0), b, &C(i * 4, 0));
@@ -1008,15 +1009,15 @@ void farm_4nx4n_4nx4n(
 }
 
 void farm_4nx4n_4nxk(
+    const int Ma,
+    const int Mb,
+    const int Mc,
     const int N,
     const int k,
     double *restrict a,
     double *restrict b,
     double *c)
 {
-    const int Ma = 4 * N;
-    const int Mb = Ma;
-    const int Mc = Ma;
     for (int i = 0; i < N; ++i)
     {
         ear_4x4n_4nxk(Ma, Mb, Mc, N, k, &A(i * 4, 0), b, &C(i * 4, 0));
@@ -1024,15 +1025,15 @@ void farm_4nx4n_4nxk(
 }
 
 void farm_4nxk_kx4n(
+    const int Ma,
+    const int Mb,
+    const int Mc,
     const int N,
     const int k,
     double *restrict a,
     double *restrict b,
     double *c)
 {
-    const int Ma = 4 * N;
-    const int Mb = Ma;
-    const int Mc = Ma;
     for (int i = 0; i < N; ++i)
     {
         ear_4xk_kx4n(Ma, Mb, Mc, k, N, &A(i * 4, 0), b, &C(i * 4, 0));
@@ -1103,7 +1104,7 @@ void main()
         }
     }
 
-    farm_4nxk_kx4n(N, k, a, b, c);
+    farm_4nxk_kx4n(Ma, Mb, Mc, N, k, a, b, c);
 
     // print result
     printf("Result:\n");
