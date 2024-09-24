@@ -1025,6 +1025,61 @@ void ear_kx4_4x4(
     }
 }
 
+void ear_kx4_4xk(
+    const int Ma,
+    const int Mb,
+    const int Mc,
+    const int k,
+    double *restrict a,
+    double *restrict b,
+    double *c)
+{
+    if (k == 1)
+    {
+        kernel_1x4_4x1(Ma, Mb, Mc, a, b, c);
+    }
+    else if (k == 2)
+    {
+        kernel_2x4_4x2(Ma, Mb, Mc, a, b, c);
+    }
+    else if (k == 3)
+    {
+        kernel_3x4_4x3(Ma, Mb, Mc, a, b, c);
+    }
+    else
+    {
+        // should never reach here
+    }
+}
+
+void ear_kxk_kx4(
+    const int Ma,
+    const int Mb,
+    const int Mc,
+    const int k,
+    double *restrict a,
+    double *restrict b,
+    double *c)
+{
+    if (k == 1)
+    {
+        kernel_1x1_1x4(Ma, Mb, Mc, a, b, c);
+    }
+    else if (k == 2)
+    {
+        kernel_2x2_2x4(Ma, Mb, Mc, a, b, c);
+    }
+    else if (k == 3)
+    {
+
+        kernel_3x3_3x4(Ma, Mb, Mc, a, b, c);
+    }
+    else
+    {
+        // should never reach here
+    }
+}
+
 // start of fields
 /*
     No need to provide information about matrix shape because we assume that
@@ -1142,6 +1197,38 @@ void farm_kx4n_4nx4n(
     }
 }
 
+void farm_kx4n_4nxk(
+    const int Ma,
+    const int Mb,
+    const int Mc,
+    const int k,
+    const int N,
+    double *restrict a,
+    double *restrict b,
+    double *c)
+{
+    for (int i = 0; i < N; ++i)
+    {
+        ear_kx4_4xk(Ma, Mb, Mc, k, &A(0, i * 4), &B(i * 4, 0), c);
+    }
+}
+
+void farm_kxk_kx4n(
+    const int Ma,
+    const int Mb,
+    const int Mc,
+    const int k,
+    const int N,
+    double *restrict a,
+    double *restrict b,
+    double *c)
+{
+    for (int i = 0; i < N; ++i)
+    {
+        ear_kxk_kx4(Ma, Mb, Mc, k, a, &B(0, i * 4), &C(0, i * 4));
+    }
+}
+
 double *transpose(const int N, const double *X)
 {
     double *X_T = (double *)malloc(N * N * sizeof(double));
@@ -1177,12 +1264,12 @@ void main()
     // fill A
     for (int i = 0; i < M * N * M * N; ++i)
     {
-        a[i] = i;
+        a[i] = i + 12;
     }
     // fill B
     for (int i = 0; i < M * N * M * N; ++i)
     {
-        b[i] = i * -1;
+        b[i] = (i + 12) * -1;
     }
 
     // print out what A and B look like
@@ -1206,7 +1293,7 @@ void main()
         }
     }
 
-    farm_kx4n_4nx4n(Ma, Mb, Mc, k, N, a, b, c);
+    farm_kxk_kx4n(Ma, Mb, Mc, k, N, a, b, c);
 
     // print result
     printf("Result:\n");
