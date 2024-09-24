@@ -1294,6 +1294,24 @@ void ranch_4nxk_kx4nk(
     farm_4nxk_kxk(Ma, Mb, Mc, N, k, a, &B(0, N * 4), &C(0, N * 4));
 }
 
+// k x 4n multiplied by 4n x (4n + k)
+void ranch_kx4n_4nx4nk(
+    const int Ma,
+    const int Mb,
+    const int Mc,
+    const int k,
+    const int N,
+    double *restrict a,
+    double *restrict b,
+    double *c)
+{
+    // k x 4n multiplied by 4n x 4n
+    farm_kx4n_4nx4n(Ma, Mb, Mc, k, N, a, b, c);
+
+    // k x 4n multiplied by 4n x k
+    farm_kx4n_4nxk(Ma, Mb, Mc, k, N, a, &B(0, N * 4), &C(0, N * 4));
+}
+
 double *transpose(const int N, const double *X)
 {
     double *X_T = (double *)malloc(N * N * sizeof(double));
@@ -1318,7 +1336,7 @@ void main()
 {
     const int M = 4;
     const int N = 2;
-    const int k = 1;
+    const int k = 3;
     const int Ma = M * N + k;
     const int Mb = Ma;
     const int Mc = Ma;
@@ -1358,7 +1376,8 @@ void main()
         }
     }
 
-    ranch_4nxk_kx4nk(Ma, Mb, Mc, N, k, &A(0, 4 * N), &B(4 * N, 0), c);
+    // ranch_4nxk_kx4nk(Ma, Mb, Mc, N, k, &A(0, 4 * N), &B(4 * N, 0), c);
+    ranch_kx4n_4nx4nk(Ma, Mb, Mc, k, N, &A(4 * N, 0), b, &C(4 * N, 0));
 
     // print result
     printf("Result:\n");
