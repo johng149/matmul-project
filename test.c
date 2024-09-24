@@ -1256,6 +1256,26 @@ void farm_kxk_kxk(
     }
 }
 
+// ranches start here
+
+// 4n x 4n multiplied by 4n x (4n + k)
+void ranch_4nx4n_4nx4nk(
+    const int Ma,
+    const int Mb,
+    const int Mc,
+    const int N,
+    const int k,
+    double *restrict a,
+    double *restrict b,
+    double *c)
+{
+    // 4n x 4n multiplied by 4n x (4n)
+    farm_4nx4n_4nx4n(Ma, Mb, Mc, N, a, b, c);
+
+    // 4n x 4n multiplied by 4n x k
+    farm_4nx4n_4nxk(Ma, Mb, Mc, N, k, a, &B(0, N * 4), &C(0, N * 4));
+}
+
 double *transpose(const int N, const double *X)
 {
     double *X_T = (double *)malloc(N * N * sizeof(double));
@@ -1280,53 +1300,53 @@ void main()
 {
     const int M = 4;
     const int N = 2;
-    const int k = 1;
-    const int Ma = M * N;
-    const int Mb = M * N;
-    const int Mc = M * N;
-    double *a = (double *)malloc(M * N * M * N * sizeof(double));
-    double *b = (double *)malloc(M * N * M * N * sizeof(double));
-    double *c = (double *)calloc(M * N * M * N, sizeof(double));
+    const int k = 2;
+    const int Ma = M * N + k;
+    const int Mb = Ma;
+    const int Mc = Ma;
+    double *a = (double *)malloc(Ma * Ma * sizeof(double));
+    double *b = (double *)malloc(Mb * Mb * sizeof(double));
+    double *c = (double *)calloc(Mc * Mc, sizeof(double));
 
     // fill A
-    for (int i = 0; i < M * N * M * N; ++i)
+    for (int i = 0; i < Ma * Ma; ++i)
     {
-        a[i] = i + 12;
+        a[i] = i / 10.0;
     }
     // fill B
-    for (int i = 0; i < M * N * M * N; ++i)
+    for (int i = 0; i < Mb * Mb; ++i)
     {
-        b[i] = (i + 12) * -1;
+        b[i] = (i) * -1 / 10.0;
     }
 
     // print out what A and B look like
     printf("A:\n");
-    for (int i = 0; i < M * M * N; ++i)
+    for (int i = 0; i < Ma * Ma; ++i)
     {
         printf("%f ", a[i]);
-        if ((i + 1) % (M * N) == 0)
+        if ((i + 1) % Ma == 0)
         {
             printf("\n");
         }
     }
     // and B
     printf("B:\n");
-    for (int i = 0; i < M * N * M * N; ++i)
+    for (int i = 0; i < Mb * Mb; ++i)
     {
         printf("%f ", b[i]);
-        if ((i + 1) % (M * N) == 0)
+        if ((i + 1) % (Mb) == 0)
         {
             printf("\n");
         }
     }
 
-    farm_kxk_kxk(Ma, Mb, Mc, k, a, b, c);
+    ranch_4nx4n_4nx4nk(Ma, Mb, Mc, N, k, a, b, c);
 
     // print result
     printf("Result:\n");
-    for (int i = 0; i < M * N; ++i)
+    for (int i = 0; i < Mc; ++i)
     {
-        for (int j = 0; j < M * N; ++j)
+        for (int j = 0; j < Mc; ++j)
         {
             printf("%f ", C(i, j));
         }
