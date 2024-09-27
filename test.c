@@ -281,6 +281,21 @@ void farm_4x8n_8nx8n(
     }
 }
 
+void farm_4x8n_8nx4(
+    const int Ma,
+    const int Mb,
+    const int Mc,
+    const int N,
+    double *restrict a,
+    double *restrict b,
+    double *c)
+{
+    for (int i = 0; i < N; ++i)
+    {
+        ear_4x8_8x4(Ma, Mb, Mc, &A(0, i * 8), &B(i * 8, 0), c);
+    }
+}
+
 // start of ranches
 
 // 8nx8n multiplied by 8nx(8n + 4) matrix
@@ -382,7 +397,7 @@ void main()
 
     // ranch_8nx8n_8nx8n4(Ma, Mb, Mc, N, a, b, c);
     // ranch_8nx4_4x8n4(Ma, Mb, Mc, N, &A(0, N * 8), &B(N * 8, 0), c);
-    farm_4x8n_8nx8n(Ma, Mb, Mc, N, a, b, c);
+    farm_4x8n_8nx4(Ma, Mb, Mc, N, a, b, c);
 
     // print result
     printf("Result:\n");
