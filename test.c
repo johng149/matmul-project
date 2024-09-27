@@ -164,21 +164,21 @@ void farm_8nx8n_8nx8n(
 // start of ranches
 
 // 8nx8n multiplied by 8nx(8n + 4) matrix
-// void ranch_8nx8n_8nx8n4(
-//     const int Ma,
-//     const int Mb,
-//     const int Mc,
-//     const int N,
-//     double *restrict a,
-//     double *restrict b,
-//     double *c)
-// {
-//     // 8nx8n multiplied by 8nx8n
-//     farm_8nx8n_8nx8n(Ma, Mb, Mc, N, a, b, c);
+void ranch_8nx8n_8nx8n4(
+    const int Ma,
+    const int Mb,
+    const int Mc,
+    const int N,
+    double *restrict a,
+    double *restrict b,
+    double *c)
+{
+    // 8nx8n multiplied by 8nx8n
+    farm_8nx8n_8nx8n(Ma, Mb, Mc, N, a, b, c);
 
-//     // 8nx8n multiplied by 8nx4
-//     farm_8nx8n_8nx4(Ma, Mb, Mc, N, a, &B(0, N * 8), &C(0, N * 8));
-// }
+    // 8nx8n multiplied by 8nx4
+    farm_8nx8n_8nx4(Ma, Mb, Mc, N, a, &B(0, N * 8), &C(0, N * 8));
+}
 
 double *transpose(const int N, const double *X)
 {
@@ -244,9 +244,7 @@ void main()
         }
     }
 
-    // simulated_kernel_8x8_8x8(Ma, Mb, Mc, a, b, c);
-
-    farm_8nx8n_8nx8n(Ma, Mb, Mc, N, a, b, c);
+    ranch_8nx8n_8nx8n4(Ma, Mb, Mc, N, a, b, c);
 
     // print result
     printf("Result:\n");
