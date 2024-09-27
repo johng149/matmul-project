@@ -347,6 +347,22 @@ void ranch_4x8n_8nx8n4(
     farm_4x8n_8nx4(Ma, Mb, Mc, N, a, &B(0, N * 8), &C(0, N * 8));
 }
 
+void ranch_4x4_4x8n4(
+    const int Ma,
+    const int Mb,
+    const int Mc,
+    const int N,
+    double *restrict a,
+    double *restrict b,
+    double *c)
+{
+    // 4x4 multiplied by 4x8n
+    field_4x4_4x8n(Ma, Mb, Mc, N, a, b, c);
+
+    // 4x4 multiplied by 4x4
+    kernel_4x4_4x4(Ma, Mb, Mc, a, &B(0, N * 8), &C(0, N * 8));
+}
+
 double *transpose(const int N, const double *X)
 {
     double *X_T = (double *)malloc(N * N * sizeof(double));
@@ -413,7 +429,8 @@ void main()
 
     // ranch_8nx8n_8nx8n4(Ma, Mb, Mc, N, a, b, c);
     // ranch_8nx4_4x8n4(Ma, Mb, Mc, N, &A(0, N * 8), &B(N * 8, 0), c);
-    ranch_4x8n_8nx8n4(Ma, Mb, Mc, N, &A(N * 8, 0), b, &C(N * 8, 0));
+    // ranch_4x8n_8nx8n4(Ma, Mb, Mc, N, &A(N * 8, 0), b, &C(N * 8, 0));
+    ranch_4x4_4x8n4(Ma, Mb, Mc, N, &A(N * 8, N * 8), &B(N * 8, 0), &C(N * 8, 0));
 
     // print result
     printf("Result:\n");
