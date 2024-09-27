@@ -40,6 +40,21 @@ void kernel_4x4_4x4(const int Ma, const int Mb, const int Mc, double *restrict a
     _mm256_storeu_pd(&C(3, 0), c3);
 }
 
+// simulated 8x8_8x8 kernel since we don't have avx512 yet
+void simulated_kernel_8x8_8x8(const int Ma, const int Mb, const int Mc, double *restrict a, double *restrict b, double *c)
+{
+    for (int i = 0; i < 2; ++i)
+    {
+        for (int j = 0; j < 2; ++j)
+        {
+            for (int k = 0; k < 2; ++k)
+            {
+                kernel_4x4_4x4(Ma, Mb, Mc, &A(i * 4, k * 4), &B(k * 4, j * 4), &C(i * 4, j * 4));
+            }
+        }
+    }
+}
+
 // start of ears
 void ear_4x8_8x4(
     const int Ma,
@@ -55,6 +70,21 @@ void ear_4x8_8x4(
     }
 }
 
+void ear_8x8_8x8n(
+    const int Ma,
+    const int Mb,
+    const int Mc,
+    const int N,
+    double *restrict a,
+    double *restrict b,
+    double *c)
+{
+    for (int i = 0; i < N; ++i)
+    {
+        simulated_kernel_8x8_8x8(Ma, Mb, Mc, a, &B(0, i * 8), &C(0, i * 8));
+    }
+}
+
 // start of fields
 void field_8x8_8x4(
     const int Ma,
@@ -67,6 +97,21 @@ void field_8x8_8x4(
     for (int i = 0; i < 2; ++i)
     {
         ear_4x8_8x4(Ma, Mb, Mc, &A(i * 4, 0), b, &C(i * 4, 0));
+    }
+}
+
+void field_8x8n_8nx8n(
+    const int Ma,
+    const int Mb,
+    const int Mc,
+    const int N,
+    double *restrict a,
+    double *restrict b,
+    double *c)
+{
+    for (int i = 0; i < N; ++i)
+    {
+        ear_8x8_8x8n(Ma, Mb, Mc, N, &A(0, i * 8), &B(i * 8, 0), c);
     }
 }
 
@@ -100,6 +145,25 @@ void farm_8nx8n_8nx4(
         field_8x8n_8nx4(Ma, Mb, Mc, N, &A(i * 8, 0), b, &C(i * 8, 0));
     }
 }
+
+// start of ranches
+
+// 8nx8n multiplied by 8nx(8n + 4) matrix
+// void ranch_8nx8n_8nx8n4(
+//     const int Ma,
+//     const int Mb,
+//     const int Mc,
+//     const int N,
+//     double *restrict a,
+//     double *restrict b,
+//     double *c)
+// {
+//     // 8nx8n multiplied by 8nx8n
+//     farm_8nx8n_8nx8n(Ma, Mb, Mc, N, a, b, c);
+
+//     // 8nx8n multiplied by 8nx4
+//     farm_8nx8n_8nx4(Ma, Mb, Mc, N, a, &B(0, N * 8), &C(0, N * 8));
+// }
 
 double *transpose(const int N, const double *X)
 {
@@ -165,10 +229,9 @@ void main()
         }
     }
 
-    // field_8x8_8x4(Ma, Mb, Mc, a, b, c);
-    // ear_4x8_8x4(Ma, Mb, Mc, a, b, c);
-    // kernel_4x4_4x4(Ma, Mb, Mc, a, b, c);
-    farm_8nx8n_8nx4(Ma, Mb, Mc, N, a, b, c);
+    // simulated_kernel_8x8_8x8(Ma, Mb, Mc, a, b, c);
+
+    field_8x8n_8nx8n(Ma, Mb, Mc, N, a, b, c);
 
     // print result
     printf("Result:\n");
