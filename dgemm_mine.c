@@ -1132,12 +1132,11 @@ void ear_4x4_4x8(
     const int Ma,
     const int Mb,
     const int Mc,
-    const int N,
     double *restrict a,
     double *restrict b,
     double *c)
 {
-    for (int i = 0; i < N; ++i)
+    for (int i = 0; i < 2; ++i)
     {
         kernel_4x4_4x4(Ma, Mb, Mc, a, &B(0, i * 4), &C(0, i * 4));
     }
@@ -1249,7 +1248,7 @@ void field_4x4_4x8n(
 {
     for (int i = 0; i < N; ++i)
     {
-        ear_4x4_4x8(Ma, Mb, Mc, N, a, &B(0, i * 8), &C(0, i * 8));
+        ear_4x4_4x8(Ma, Mb, Mc, a, &B(0, i * 8), &C(0, i * 8));
     }
 }
 
@@ -1515,24 +1514,6 @@ void farm_4x8n_8nx4(
 
 // ranches start here
 
-// 4n x 4n multiplied by 4n x (4n + k)
-void ranch_4nx4n_4nx4nk(
-    const int Ma,
-    const int Mb,
-    const int Mc,
-    const int N,
-    const int k,
-    double *restrict a,
-    double *restrict b,
-    double *c)
-{
-    // 4n x 4n multiplied by 4n x (4n)
-    farm_4nx4n_4nx4n(Ma, Mb, Mc, N, a, b, c);
-
-    // 4n x 4n multiplied by 4n x k
-    farm_4nx4n_4nxk(Ma, Mb, Mc, N, k, a, &B(0, N * 4), &C(0, N * 4));
-}
-
 // 4n x k multiplied by k x (4n + k)
 void ranch_4nxk_kx4nk(
     const int Ma,
@@ -1592,7 +1573,6 @@ void ranch_8nx8n_8nx8n4(
     const int Mb,
     const int Mc,
     const int N,
-    const int plus4,
     double *restrict a,
     double *restrict b,
     double *c)
@@ -1601,10 +1581,7 @@ void ranch_8nx8n_8nx8n4(
     farm_8nx8n_8nx8n(Ma, Mb, Mc, N, a, b, c);
 
     // 8nx8n multiplied by 8nx4
-    if (plus4 > 0)
-    {
-        farm_8nx8n_8nx4(Ma, Mb, Mc, N, a, &B(0, N * 8), &C(0, N * 8));
-    }
+    farm_8nx8n_8nx4(Ma, Mb, Mc, N, a, &B(0, N * 8), &C(0, N * 8));
 }
 
 void ranch_8nx4_4x8n4(
@@ -1653,6 +1630,50 @@ void ranch_4x4_4x8n4(
 
     // 4x4 multiplied by 4x4
     kernel_4x4_4x4(Ma, Mb, Mc, a, &B(0, N * 8), &C(0, N * 8));
+}
+
+void test_avx512(
+    const int Ma,
+    const int Mb,
+    const int Mc,
+    const int n,
+    double *restrict a,
+    double *restrict b,
+    double *c)
+{
+    const int N = n / 2;
+    const int plus4 = n % 2;
+
+    if (n % 2 == 0)
+    {
+        farm_8nx8n_8nx8n(Ma, Mb, Mc, N, a, b, c);
+    }
+    else
+    {
+        ranch_8nx8n_8nx8n4(Ma, Mb, Mc, N, a, b, c);
+        ranch_8nx4_4x8n4(Ma, Mb, Mc, N, &A(0, N * 8), &B(N * 8, 0), c);
+        ranch_4x8n_8nx8n4(Ma, Mb, Mc, N, &A(N * 8, 0), b, &C(N * 8, 0));
+        ranch_4x4_4x8n4(Ma, Mb, Mc, N, &A(N * 8, N * 8), &B(N * 8, 0), &C(N * 8, 0));
+    }
+}
+
+// 4n x 4n multiplied by 4n x (4n + k)
+void ranch_4nx4n_4nx4nk(
+    const int Ma,
+    const int Mb,
+    const int Mc,
+    const int N,
+    const int k,
+    double *restrict a,
+    double *restrict b,
+    double *c)
+{
+    // 4n x 4n multiplied by 4n x (4n)
+    // farm_4nx4n_4nx4n(Ma, Mb, Mc, N, a, b, c);
+    test_avx512(Ma, Mb, Mc, N, a, b, c);
+
+    // 4n x 4n multiplied by 4n x k
+    farm_4nx4n_4nxk(Ma, Mb, Mc, N, k, a, &B(0, N * 4), &C(0, N * 4));
 }
 
 const char *dgemm_desc = "My dgemm.";

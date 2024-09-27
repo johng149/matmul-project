@@ -116,13 +116,11 @@ void ear_8x8_8x8n(
 void ear_4x4_4x8(
     const int Ma,
     const int Mb,
-    const int Mc,
-    const int N,
-    double *restrict a,
+    const int Mc, double *restrict a,
     double *restrict b,
     double *c)
 {
-    for (int i = 0; i < N; ++i)
+    for (int i = 0; i < 2; ++i)
     {
         kernel_4x4_4x4(Ma, Mb, Mc, a, &B(0, i * 4), &C(0, i * 4));
     }
@@ -199,7 +197,7 @@ void field_4x4_4x8n(
 {
     for (int i = 0; i < N; ++i)
     {
-        ear_4x4_4x8(Ma, Mb, Mc, N, a, &B(0, i * 8), &C(0, i * 8));
+        ear_4x4_4x8(Ma, Mb, Mc, a, &B(0, i * 8), &C(0, i * 8));
     }
 }
 
@@ -414,8 +412,8 @@ void square_dgemm(const int Ma, const int Mb, const int Mc, double *a, double *b
 void main()
 {
     const int M = 8;
-    const int N = 2;
-    const int k = 4;
+    const int N = 1;
+    const int k = 7;
     const int Ma = M * N + k;
     const int Mb = Ma;
     const int Mc = Ma;
@@ -455,11 +453,10 @@ void main()
         }
     }
 
-    // ranch_8nx8n_8nx8n4(Ma, Mb, Mc, N, a, b, c);
-    // ranch_8nx4_4x8n4(Ma, Mb, Mc, N, &A(0, N * 8), &B(N * 8, 0), c);
-    // ranch_4x8n_8nx8n4(Ma, Mb, Mc, N, &A(N * 8, 0), b, &C(N * 8, 0));
-    // ranch_4x4_4x8n4(Ma, Mb, Mc, N, &A(N * 8, N * 8), &B(N * 8, 0), &C(N * 8, 0));
-    kernel_8x8_8x8(Ma, Mb, Mc, a, b, c);
+    ranch_8nx8n_8nx8n4(Ma, Mb, Mc, N, a, b, c);
+    ranch_8nx4_4x8n4(Ma, Mb, Mc, N, &A(0, N * 8), &B(N * 8, 0), c);
+    ranch_4x8n_8nx8n4(Ma, Mb, Mc, N, &A(N * 8, 0), b, &C(N * 8, 0));
+    ranch_4x4_4x8n4(Ma, Mb, Mc, N, &A(N * 8, N * 8), &B(N * 8, 0), &C(N * 8, 0));
 
     // print result
     printf("Result:\n");
