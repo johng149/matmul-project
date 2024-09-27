@@ -40,19 +40,47 @@ void kernel_4x4_4x4(const int Ma, const int Mb, const int Mc, double *restrict a
     _mm256_storeu_pd(&C(3, 0), c3);
 }
 
-// simulated 8x8_8x8 kernel since we don't have avx512 yet
-void simulated_kernel_8x8_8x8(const int Ma, const int Mb, const int Mc, double *restrict a, double *restrict b, double *c)
+void kernel_8x8_8x8(const int Ma, const int Mb, const int Mc, double *restrict a, double *restrict b, double *c)
 {
-    for (int i = 0; i < 2; ++i)
+    __m512d c0 = _mm512_loadu_pd(&C(0, 0));
+    __m512d c1 = _mm512_loadu_pd(&C(1, 0));
+    __m512d c2 = _mm512_loadu_pd(&C(2, 0));
+    __m512d c3 = _mm512_loadu_pd(&C(3, 0));
+    __m512d c4 = _mm512_loadu_pd(&C(4, 0));
+    __m512d c5 = _mm512_loadu_pd(&C(5, 0));
+    __m512d c6 = _mm512_loadu_pd(&C(6, 0));
+    __m512d c7 = _mm512_loadu_pd(&C(7, 0));
+
+    for (int i = 0; i < 8; ++i)
     {
-        for (int j = 0; j < 2; ++j)
-        {
-            for (int k = 0; k < 2; ++k)
-            {
-                kernel_4x4_4x4(Ma, Mb, Mc, &A(i * 4, k * 4), &B(k * 4, j * 4), &C(i * 4, j * 4));
-            }
-        }
+        __m512d a0 = _mm512_set1_pd(A(0, i));
+        __m512d a1 = _mm512_set1_pd(A(1, i));
+        __m512d a2 = _mm512_set1_pd(A(2, i));
+        __m512d a3 = _mm512_set1_pd(A(3, i));
+        __m512d a4 = _mm512_set1_pd(A(4, i));
+        __m512d a5 = _mm512_set1_pd(A(5, i));
+        __m512d a6 = _mm512_set1_pd(A(6, i));
+        __m512d a7 = _mm512_set1_pd(A(7, i));
+        __m512d b0 = _mm512_loadu_pd(&B(i, 0));
+
+        c0 = _mm512_fmadd_pd(a0, b0, c0);
+        c1 = _mm512_fmadd_pd(a1, b0, c1);
+        c2 = _mm512_fmadd_pd(a2, b0, c2);
+        c3 = _mm512_fmadd_pd(a3, b0, c3);
+        c4 = _mm512_fmadd_pd(a4, b0, c4);
+        c5 = _mm512_fmadd_pd(a5, b0, c5);
+        c6 = _mm512_fmadd_pd(a6, b0, c6);
+        c7 = _mm512_fmadd_pd(a7, b0, c7);
     }
+
+    _mm512_storeu_pd(&C(0, 0), c0);
+    _mm512_storeu_pd(&C(1, 0), c1);
+    _mm512_storeu_pd(&C(2, 0), c2);
+    _mm512_storeu_pd(&C(3, 0), c3);
+    _mm512_storeu_pd(&C(4, 0), c4);
+    _mm512_storeu_pd(&C(5, 0), c5);
+    _mm512_storeu_pd(&C(6, 0), c6);
+    _mm512_storeu_pd(&C(7, 0), c7);
 }
 
 // start of ears
@@ -81,7 +109,7 @@ void ear_8x8_8x8n(
 {
     for (int i = 0; i < N; ++i)
     {
-        simulated_kernel_8x8_8x8(Ma, Mb, Mc, a, &B(0, i * 8), &C(0, i * 8));
+        kernel_8x8_8x8(Ma, Mb, Mc, a, &B(0, i * 8), &C(0, i * 8));
     }
 }
 
@@ -430,7 +458,8 @@ void main()
     // ranch_8nx8n_8nx8n4(Ma, Mb, Mc, N, a, b, c);
     // ranch_8nx4_4x8n4(Ma, Mb, Mc, N, &A(0, N * 8), &B(N * 8, 0), c);
     // ranch_4x8n_8nx8n4(Ma, Mb, Mc, N, &A(N * 8, 0), b, &C(N * 8, 0));
-    ranch_4x4_4x8n4(Ma, Mb, Mc, N, &A(N * 8, N * 8), &B(N * 8, 0), &C(N * 8, 0));
+    // ranch_4x4_4x8n4(Ma, Mb, Mc, N, &A(N * 8, N * 8), &B(N * 8, 0), &C(N * 8, 0));
+    kernel_8x8_8x8(Ma, Mb, Mc, a, b, c);
 
     // print result
     printf("Result:\n");
