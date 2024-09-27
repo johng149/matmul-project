@@ -85,6 +85,21 @@ void ear_8x8_8x8n(
     }
 }
 
+void ear_4x4_4x8(
+    const int Ma,
+    const int Mb,
+    const int Mc,
+    const int N,
+    double *restrict a,
+    double *restrict b,
+    double *c)
+{
+    for (int i = 0; i < N; ++i)
+    {
+        kernel_4x4_4x4(Ma, Mb, Mc, a, &B(0, i * 4), &C(0, i * 4));
+    }
+}
+
 // start of fields
 void field_8x8_8x4(
     const int Ma,
@@ -130,6 +145,36 @@ void field_8x8n_8nx4(
     }
 }
 
+void field_4x4_4x8n(
+    const int Ma,
+    const int Mb,
+    const int Mc,
+    const int N,
+    double *restrict a,
+    double *restrict b,
+    double *c)
+{
+    for (int i = 0; i < N; ++i)
+    {
+        ear_4x4_4x8(Ma, Mb, Mc, N, a, &B(0, i * 8), &C(0, i * 8));
+    }
+}
+
+void field_8x4_4x8n(
+    const int Ma,
+    const int Mb,
+    const int Mc,
+    const int N,
+    double *restrict a,
+    double *restrict b,
+    double *c)
+{
+    for (int i = 0; i < 2; ++i)
+    {
+        field_4x4_4x8n(Ma, Mb, Mc, N, &A(i * 4, 0), b, &C(i * 4, 0));
+    }
+}
+
 // start of farms
 void farm_8nx8n_8nx4(
     const int Ma,
@@ -158,6 +203,21 @@ void farm_8nx8n_8nx8n(
     for (int i = 0; i < N; ++i)
     {
         field_8x8n_8nx8n(Ma, Mb, Mc, N, &A(i * 8, 0), b, &C(i * 8, 0));
+    }
+}
+
+void farm_8nx4_4x8n(
+    const int Ma,
+    const int Mb,
+    const int Mc,
+    const int N,
+    double *restrict a,
+    double *restrict b,
+    double *c)
+{
+    for (int i = 0; i < N; ++i)
+    {
+        field_8x4_4x8n(Ma, Mb, Mc, N, &A(i * 8, 0), b, &C(i * 8, 0));
     }
 }
 
@@ -244,7 +304,9 @@ void main()
         }
     }
 
-    ranch_8nx8n_8nx8n4(Ma, Mb, Mc, N, a, b, c);
+    // field_4x4_4x8n(Ma, Mb, Mc, N, a, b, c);
+    // field_8x4_4x8n(Ma, Mb, Mc, N, a, b, c);
+    farm_8nx4_4x8n(Ma, Mb, Mc, N, a, b, c);
 
     // print result
     printf("Result:\n");
