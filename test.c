@@ -100,6 +100,21 @@ void ear_4x4_4x8(
     }
 }
 
+void ear_8x4_4x4(
+    const int Ma,
+    const int Mb,
+    const int Mc,
+    const int N,
+    double *restrict a,
+    double *restrict b,
+    double *c)
+{
+    for (int i = 0; i < 2; ++i)
+    {
+        kernel_4x4_4x4(Ma, Mb, Mc, &A(i * 4, 0), b, &C(i * 4, 0));
+    }
+}
+
 // start of fields
 void field_8x8_8x4(
     const int Ma,
@@ -221,6 +236,21 @@ void farm_8nx4_4x8n(
     }
 }
 
+void farm_8nx4_4x4(
+    const int Ma,
+    const int Mb,
+    const int Mc,
+    const int N,
+    double *restrict a,
+    double *restrict b,
+    double *c)
+{
+    for (int i = 0; i < N; ++i)
+    {
+        ear_8x4_4x4(Ma, Mb, Mc, N, &A(i * 8, 0), b, &C(i * 8, 0));
+    }
+}
+
 // start of ranches
 
 // 8nx8n multiplied by 8nx(8n + 4) matrix
@@ -238,6 +268,22 @@ void ranch_8nx8n_8nx8n4(
 
     // 8nx8n multiplied by 8nx4
     farm_8nx8n_8nx4(Ma, Mb, Mc, N, a, &B(0, N * 8), &C(0, N * 8));
+}
+
+void ranch_8nx4_4x8n4(
+    const int Ma,
+    const int Mb,
+    const int Mc,
+    const int N,
+    double *restrict a,
+    double *restrict b,
+    double *c)
+{
+    // 8nx4 multiplied by 4x8n
+    farm_8nx4_4x8n(Ma, Mb, Mc, N, a, b, c);
+
+    // 8nx4 multiplied by 4x4
+    farm_8nx4_4x4(Ma, Mb, Mc, N, a, &B(0, N * 8), &C(0, N * 8));
 }
 
 double *transpose(const int N, const double *X)
@@ -304,9 +350,8 @@ void main()
         }
     }
 
-    // field_4x4_4x8n(Ma, Mb, Mc, N, a, b, c);
-    // field_8x4_4x8n(Ma, Mb, Mc, N, a, b, c);
-    farm_8nx4_4x8n(Ma, Mb, Mc, N, a, b, c);
+    // ranch_8nx8n_8nx8n4(Ma, Mb, Mc, N, a, b, c);
+    ranch_8nx4_4x8n4(Ma, Mb, Mc, N, &A(0, N * 8), &B(N * 8, 0), c);
 
     // print result
     printf("Result:\n");
