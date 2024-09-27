@@ -146,6 +146,21 @@ void farm_8nx8n_8nx4(
     }
 }
 
+void farm_8nx8n_8nx8n(
+    const int Ma,
+    const int Mb,
+    const int Mc,
+    const int N,
+    double *restrict a,
+    double *restrict b,
+    double *c)
+{
+    for (int i = 0; i < N; ++i)
+    {
+        field_8x8n_8nx8n(Ma, Mb, Mc, N, &A(i * 8, 0), b, &C(i * 8, 0));
+    }
+}
+
 // start of ranches
 
 // 8nx8n multiplied by 8nx(8n + 4) matrix
@@ -231,7 +246,7 @@ void main()
 
     // simulated_kernel_8x8_8x8(Ma, Mb, Mc, a, b, c);
 
-    field_8x8n_8nx8n(Ma, Mb, Mc, N, a, b, c);
+    farm_8nx8n_8nx8n(Ma, Mb, Mc, N, a, b, c);
 
     // print result
     printf("Result:\n");
