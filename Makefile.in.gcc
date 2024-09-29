@@ -11,7 +11,7 @@ PYTHON=python3
 
 # Compiler optimization flags.  You will definitely want to play with these!
 OPTFLAGS = -O3 
-CFLAGS = -funroll-loops -ftree-vectorize -ftree-vectorizer-verbose=2 -march=native -mtune=native -mavx2
+CFLAGS = -funroll-loops -ftree-vectorize -ftree-vectorizer-verbose=2 -ffast-math -march=native -mtune=native
 FFLAGS =
 LDFLAGS = -fopenmp
 
